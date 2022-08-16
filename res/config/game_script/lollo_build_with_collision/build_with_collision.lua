@@ -84,6 +84,7 @@ function data()
 				or id == 'bulldozer'
 			)
 			then
+				_logger.print('guiHandleEvent ONE')
 				xpcall(
 					function()
 						if
@@ -93,6 +94,7 @@ function data()
 							and #param.data.errorState.messages > 0
 							and not _workerFuncs.isProposalEmpty(param.proposal)
 						then
+							_logger.print('guiHandleEvent TWO, id =') _logger.debugPrint(id)
 							local cmd = api.cmd.make.buildProposal(api.type.SimpleProposal.new(), nil, true) -- SimpleProposal, context, ignoreErrors
 							cmd.proposal = param.proposal -- we override the SimpleProposal with the complex one coming from the game.
 							if id == 'trackBuilder' or id == 'streetBuilder' then
@@ -171,6 +173,8 @@ function data()
 								)
 							end
 						else
+							_logger.print('param.data.errorState =') _logger.debugPrint(param and (param.data and param.data.errorState))
+							-- _logger.print('param.proposal =') _logger.debugPrint(param and param.proposal)
 							_guiHelpers.hideBuildAnyway()
 						end
 					end,
