@@ -74,14 +74,15 @@ function data()
 			-- 	-- 	print('param =') debugPrint(param)
 			-- 	-- end
 			-- end
+			if name == 'builder.proposalCreate' then print('builder.proposalCreate firing, id =', id) end
 			if name == 'builder.proposalCreate'
 			and (
-				id == 'trackBuilder'
+				id == 'bulldozer'
+				or id == 'constructionBuilder'
 				or id == 'streetBuilder'
 				or id == 'streetTrackModifier'
-				or id =='streetTerminalBuilder' -- signals+bus stops , never collision
-				or id == 'constructionBuilder'
-				or id == 'bulldozer'
+				or id == 'streetTerminalBuilder' -- signals + bus stops
+				or id == 'trackBuilder'
 			)
 			then
 				_logger.print('guiHandleEvent ONE')
@@ -116,7 +117,7 @@ function data()
 										)
 									end
 								)
-							elseif id == 'constructionBuilder' then
+							elseif id == 'constructionBuilder' or id == 'streetTerminalBuilder' then
 								_guiHelpers.showBuildAnyway(
 									_('BuildAnyway'),
 									{ x = -100, y = 0 },
