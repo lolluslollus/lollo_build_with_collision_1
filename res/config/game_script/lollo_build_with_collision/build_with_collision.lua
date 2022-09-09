@@ -74,7 +74,7 @@ function data()
 			-- 	-- 	print('param =') debugPrint(param)
 			-- 	-- end
 			-- end
-			if name == 'builder.proposalCreate' then print('builder.proposalCreate firing, id =', id) end
+			-- if name == 'builder.proposalCreate' then _logger.print('builder.proposalCreate firing, id =', id) end
 			if name == 'builder.proposalCreate'
 			and (
 				id == 'bulldozer'
