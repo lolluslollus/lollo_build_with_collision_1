@@ -4,7 +4,7 @@ function data()
 		info = {
 			name = _("ModName"),
 			description = _("ModDesc"),
-			minorVersion = 1,
+			minorVersion = 2,
 			severityAdd = "NONE",
 			severityRemove = "NONE",
 			tags = {"Script Mod"},
