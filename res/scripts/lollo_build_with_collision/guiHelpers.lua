@@ -40,7 +40,7 @@ local privateFuncs = {
 }
 
 local publicFuncs = {
-    showBuildAnyway = function(text, offset, callback)
+    showBuildAnyway = function(text, offset, onClickFunc)
         privateData.isShowingBuildAnyway = true
 
         local content = api.gui.layout.BoxLayout.new('VERTICAL')
@@ -59,7 +59,8 @@ local publicFuncs = {
         button:onClick(
             function()
                 window:setVisible(false, false)
-                callback()
+                privateData.isShowingBuildAnyway = false
+                if type(onClickFunc) then onClickFunc() end
             end
         )
         content:addItem(button)

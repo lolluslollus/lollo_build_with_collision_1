@@ -120,7 +120,7 @@ function data()
 							elseif id == 'constructionBuilder' or id == 'streetTerminalBuilder' then
 								_guiHelpers.showBuildAnyway(
 									_('BuildAnyway'),
-									{ x = -100, y = 0 },
+									{ x = -90, y = -10 },
 									function()
 										api.cmd.sendCommand(
 											cmd,
@@ -181,7 +181,7 @@ function data()
 					end,
 					_logger.xpErrorHandler
 				)
-			elseif (_stringUtils.stringStartsWith(id, 'menu.')) then
+			elseif (name == 'builder.apply' or name == 'select' or _stringUtils.stringStartsWith(id, 'menu.')) then
 				_guiHelpers.hideBuildAnyway()
 			-- elseif (id == 'menu.construction.railmenu' and name == 'visibilityChange' and param==false)
 			-- or (id == 'menu.construction.roadmenu' and name == 'visibilityChange' and param==false)
