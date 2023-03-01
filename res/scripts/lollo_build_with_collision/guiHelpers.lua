@@ -8,19 +8,21 @@ local _texts = {
     operationOn = _('OperationOn'),
 }
 
-local privateData = {
-    isShowingBuildAnyway = false,
-}
-
 local privateFuncs = {
     hideBuildAnyway = function()
-        if privateData.isShowingBuildAnyway then -- only for performance
-            privateData.isShowingBuildAnyway = false
+        _logger.print('hideBuildAnyway starting')
+        if not(api.gui) then
+            _logger.print('api.gui is NIL')
+            return
+        end
 
-            local window = api.gui.util.getById(_constants.guiIds.buildAnywayWindowId)
-            if window ~= nil then
-                window:setVisible(false, false)
-            end
+        local window = api.gui.util.getById(_constants.guiIds.buildAnywayWindowId)
+        if window ~= nil and window:isVisible() then
+            _logger.print('hideBuildAnyway found a visible window')
+            window:setVisible(false, false)
+            -- window:remove() NO, this will destroy the window from within, causing a crash
+            -- window:invokeLater(function() window:setVisible(false, false) end) -- maybe try this
+            -- window:setMouseListener(func) -- maybe try this
         end
     end,
     modifyOnOffButtonLayout2 = function(layout, isOn)
@@ -41,26 +43,33 @@ local privateFuncs = {
 
 local publicFuncs = {
     showBuildAnyway = function(text, offset, onClickFunc)
-        privateData.isShowingBuildAnyway = true
+        _logger.print('showBuildAnyway starting')
 
         local content = api.gui.layout.BoxLayout.new('VERTICAL')
         local window = api.gui.util.getById(_constants.guiIds.buildAnywayWindowId)
         if window == nil then
             window = api.gui.comp.Window.new(_texts.buildAnywayWindowTitle, content)
             window:setId(_constants.guiIds.buildAnywayWindowId)
+            _logger.print('showBuildAnyway found no window')
         else
             window:setContent(content)
+            _logger.print('showBuildAnyway found a window')
             window:setVisible(true, false)
         end
+        _logger.print('showBuildAnyway about to make its window layout')
 
         local buttonLayout = api.gui.layout.BoxLayout.new('HORIZONTAL')
         buttonLayout:addItem(api.gui.comp.TextView.new(text or _texts.buildAnyway))
         local button = api.gui.comp.Button.new(buttonLayout, true)
         button:onClick(
             function()
-                window:setVisible(false, false)
-                privateData.isShowingBuildAnyway = false
-                if type(onClickFunc) then onClickFunc() end
+                _logger.print('button:onClick starting')
+                if window:isVisible() then
+                    window:setVisible(false, false)
+                    -- window:remove() NO, this will destroy the window from within, causing a crash
+                    -- window:invokeLater(function() window:setVisible(false, false) end) -- maybe try this
+                end
+                if type(onClickFunc) == 'function' then onClickFunc() end
             end
         )
         content:addItem(button)
@@ -72,7 +81,12 @@ local publicFuncs = {
         window:getLayout():getItem(0):setVisible(false, false)
 
         window:onClose(
-            privateFuncs.hideBuildAnyway
+            function()
+                _logger.print('window:onClose firing')
+                if window:isVisible() then
+                    window:setVisible(false, false)
+                end
+            end
         )
     end,
     hideBuildAnyway = privateFuncs.hideBuildAnyway,
@@ -83,16 +97,18 @@ local publicFuncs = {
         privateFuncs.modifyOnOffButtonLayout2(toggleButtonLayout, isFunctionOn)
         local toggleButton = api.gui.comp.ToggleButton.new(toggleButtonLayout)
         toggleButton:setSelected(isFunctionOn, false)
-        toggleButton:onToggle(function(isOn) -- isOn is boolean
-            _logger.print('isFunctionOn toggled; isOn = ', isOn)
-            while toggleButtonLayout:getNumItems() > 0 do
-                local item0 = toggleButtonLayout:getItem(0)
-                toggleButtonLayout:removeItem(item0)
+        toggleButton:onToggle(
+            function(isOn) -- isOn is boolean
+                _logger.print('isFunctionOn toggled; isOn = ', isOn)
+                while toggleButtonLayout:getNumItems() > 0 do
+                    local item0 = toggleButtonLayout:getItem(0)
+                    toggleButtonLayout:removeItem(item0)
+                end
+                privateFuncs.modifyOnOffButtonLayout2(toggleButtonLayout, isOn)
+                toggleButton:setSelected(isOn, false)
+                funcOfBool(isOn)
             end
-            privateFuncs.modifyOnOffButtonLayout2(toggleButtonLayout, isOn)
-            toggleButton:setSelected(isOn, false)
-            funcOfBool(isOn)
-        end)
+        )
 
         toggleButton:setId(_constants.guiIds.operationOnOffButton)
         api.gui.util.getById('gameInfo'):getLayout():addItem(toggleButton)

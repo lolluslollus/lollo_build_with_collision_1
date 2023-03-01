@@ -31,16 +31,14 @@ return {
     profile = function(label, func)
         if _isTimersActive then
             local results
-            local startSec = os.clock()
-            print('######## ' .. tostring(label or '') .. ' starting at', math.ceil(startSec * 1000), 'mSec')
-            -- results = {func()} -- func() may return several results, it's LUA
-            results = func()
-            local elapsedSec = os.clock() - startSec
-            print('######## ' .. tostring(label or '') .. ' took' .. math.ceil(elapsedSec * 1000) .. 'mSec')
-            -- return table.unpack(results) -- LOLLO TODO test if we really need this
-            return results
+            local _startSec = os.clock()
+            print('######## ' .. tostring(label or '') .. ' starting at ' .. math.ceil(_startSec * 1000) .. ' mSec')
+            results = {func()} -- func() may return several results, it's LUA
+            local _elapsedSec = os.clock() - _startSec
+            print('######## ' .. tostring(label or '') .. ' took ' .. math.ceil(_elapsedSec * 1000) .. ' mSec')
+            return table.unpack(results) -- unpack the results as they are supposed to be
         else
-            return func() -- LOLLO TODO test this
+            return func()
         end
     end,
     xpHandler = function(error)
