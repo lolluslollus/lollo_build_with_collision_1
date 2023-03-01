@@ -8,25 +8,7 @@ local _stringUtils = require('lollo_build_with_collision.stringUtils')
 -- LOLLO NOTE if this script is inside a subdirectory, fine; otherwise, guiInit() might fire before all has been initialised
 _stateHelpers.initState()
 
-local _workerFuncs = {
-	clickCancelButton = function()
-		-- must be called inside pcall or xpcall
-		local mainView = assert(api.gui.util.getById('mainView'), 'Build with collision WARNING: No mainView')
-		-- buildControlComp comes with the game, it is the overlay with BUILD and CANCEL buttons and the tilt arrow
-		local buildControlComp = mainView:getLayout():getItem(1):getLayout():getItem(0)
-		if buildControlComp and buildControlComp:getName() == 'BuildControlComp' then
-			for i = 0, buildControlComp:getLayout():getNumItems() -1 do
-				local buildCancel = assert(buildControlComp:getLayout():getItem(i), 'Build with collision WARNING: No buildControlComp:getLayout():getItem(1)')
-				for ii = 0, buildCancel:getNumItems() -1 do
-					local item = buildCancel:getItem(ii)
-					if item:getName() == 'BuildControlComp::CancelButton' then
-						item:click()
-						return
-					end
-				end
-			end
-		end
-	end,
+local _utils = {
 	isProposalEmpty = function(proposal)
 		return
 			proposal and proposal.proposal
@@ -52,6 +34,24 @@ local _workerFuncs = {
 }
 
 local _guiFuncs = {
+	clickCancelButton = function()
+		-- must be called inside pcall or xpcall
+		local mainView = assert(api.gui.util.getById('mainView'), 'Build with collision WARNING: No mainView')
+		-- buildControlComp comes with the game, it is the overlay with BUILD and CANCEL buttons and the tilt arrow
+		local buildControlComp = mainView:getLayout():getItem(1):getLayout():getItem(0)
+		if buildControlComp and buildControlComp:getName() == 'BuildControlComp' then
+			for i = 0, buildControlComp:getLayout():getNumItems() -1 do
+				local buildCancel = assert(buildControlComp:getLayout():getItem(i), 'Build with collision WARNING: No buildControlComp:getLayout():getItem(1)')
+				for ii = 0, buildCancel:getNumItems() -1 do
+					local item = buildCancel:getItem(ii)
+					if item:getName() == 'BuildControlComp::CancelButton' then
+						item:click()
+						return
+					end
+				end
+			end
+		end
+	end,
 	sendScriptEvent = function(name, args)
 		api.cmd.sendCommand(api.cmd.make.sendScriptEvent(
 			string.sub(debug.getinfo(1, 'S').source, 1), _constants.eventId, name, args)
@@ -85,7 +85,7 @@ function data()
 				or id == 'trackBuilder'
 			)
 			then
-				_logger.print('guiHandleEvent ONE')
+				_logger.print('guiHandleEvent caught name = builder.proposalCreate, id == ' .. id .. ' and it is about to show the popup')
 				xpcall(
 					function()
 						if
@@ -93,9 +93,9 @@ function data()
 							and not param.data.errorState.critical --check collision but not critical
 							-- and #param.data.collisionInfo.collisionEntities>0  -- only for collision not other issues
 							and #param.data.errorState.messages > 0
-							and not _workerFuncs.isProposalEmpty(param.proposal)
+							and not _utils.isProposalEmpty(param.proposal)
 						then
-							_logger.print('guiHandleEvent TWO, id =') _logger.debugPrint(id)
+							_logger.print('guiHandleEvent found uncritical errors')
 							local cmd = api.cmd.make.buildProposal(api.type.SimpleProposal.new(), nil, true) -- SimpleProposal, context, ignoreErrors
 							cmd.proposal = param.proposal -- we override the SimpleProposal with the complex one coming from the game.
 							if id == 'trackBuilder' or id == 'streetBuilder' then
@@ -106,12 +106,11 @@ function data()
 										api.cmd.sendCommand(
 											cmd,
 											function(res, success)
-												_guiHelpers.hideBuildAnyway()
 												if success then
 													game.gui.playSoundEffect('construct')
-													_workerFuncs.clickCancelButton()
+													_guiFuncs.clickCancelButton()
 												else
-													_workerFuncs.logBuildFailed(res)
+													_utils.logBuildFailed(res)
 												end
 											end
 										)
@@ -125,11 +124,10 @@ function data()
 										api.cmd.sendCommand(
 											cmd,
 											function(res, success)
-												_guiHelpers.hideBuildAnyway()
 												if success then
 													game.gui.playSoundEffect('construct')
 												else
-													_workerFuncs.logBuildFailed(res)
+													_utils.logBuildFailed(res)
 												end
 											end
 										)
@@ -143,11 +141,10 @@ function data()
 										api.cmd.sendCommand(
 											cmd,
 											function(res, success)
-												_guiHelpers.hideBuildAnyway()
 												if success then
 													game.gui.playSoundEffect('construct')
 												else
-													_workerFuncs.logBuildFailed(res)
+													_utils.logBuildFailed(res)
 												end
 											end
 										)
@@ -162,11 +159,10 @@ function data()
 										api.cmd.sendCommand(
 											cmd,
 											function(res, success)
-												_guiHelpers.hideBuildAnyway()
 												if success then
 													game.gui.playSoundEffect('bulldozeMedium')
 												else
-													_workerFuncs.logBuildFailed(res)
+													_utils.logBuildFailed(res)
 												end
 											end
 										)
@@ -179,19 +175,24 @@ function data()
 							_guiHelpers.hideBuildAnyway()
 						end
 					end,
-					_logger.xpErrorHandler
+					function(err)
+						_guiHelpers.hideBuildAnyway()
+						_logger.xpErrorHandler(err)
+					end
 				)
-			elseif (name == 'builder.apply' or name == 'select' or _stringUtils.stringStartsWith(id, 'menu.')) then
+			elseif (
+				name == 'builder.apply'
+				or name == 'select'
+				or (name == 'window.close' and id ~= _constants.guiIds.buildAnywayWindowId) -- don't catch my window's own destroy, it might crash
+				or (_stringUtils.stringStartsWith(id, 'menu.'))
+				-- or ((name == 'idAdded' or name == 'visibilityChange') and _stringUtils.stringStartsWith(id, 'menu.'))
+				-- or (name ~= 'destroy' and _stringUtils.stringStartsWith(id, 'menu.')) -- don't catch destroy, I have a hunch they happen too late
+			) then
+				-- this might happen at any moment, even before api.gui has been initialised
+				_logger.print('guiHandleEvent caught name = ' .. (name or 'NIL') .. ', id = ' .. (id or 'NIL') .. ' and it is about to hide the popup')
 				_guiHelpers.hideBuildAnyway()
-			-- elseif (id == 'menu.construction.railmenu' and name == 'visibilityChange' and param==false)
-			-- or (id == 'menu.construction.roadmenu' and name == 'visibilityChange' and param==false)
-			-- or (id == 'menu.construction.rail.tabs' and name == 'tabWidget.currentChanged')
-			-- or (id == 'menu.construction.road.tabs' and name == 'tabWidget.currentChanged')
-			-- or (id == 'menu.construction.terrain.tabs' and name == 'tabWidget.currentChanged')
-			-- or (id == 'menu.construction' and name == 'tabWidget.currentChanged')
-			-- or (id == 'menu.bulldozer' and name == 'toggleButton.toggle')
-			-- then
-			-- 	_guiHelpers.hideBuildAnyway()
+			else
+				_logger.print('guiHandleEvent caught name = ' .. (name or 'NIL') .. ', id = ' .. (id or 'NIL') .. ' and does nothing')
 			end
 		end,
 		guiInit = function()
@@ -204,6 +205,7 @@ function data()
 			_guiHelpers.initNotausToggleButton(
 				_state.is_on,
 				function(isOn)
+					if not(isOn) then _guiHelpers.hideBuildAnyway() end
 					_guiFuncs.sendScriptEvent(_constants.events.toggle_notaus, isOn)
 				end
 			)
