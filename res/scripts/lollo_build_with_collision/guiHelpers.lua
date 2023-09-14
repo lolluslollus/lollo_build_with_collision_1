@@ -69,7 +69,7 @@ local publicFuncs = {
                     -- window:remove() NO, this will destroy the window from within, causing a crash
                     -- window:invokeLater(function() window:setVisible(false, false) end) -- maybe try this
                 end
-                if type(onClickFunc) then onClickFunc() end
+                if type(onClickFunc) == 'function' then onClickFunc() end
             end
         )
         content:addItem(button)
